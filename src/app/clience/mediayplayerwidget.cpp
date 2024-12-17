@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QDir>
+#include <QPushButton>
 
 MediayPlayerWidget::MediayPlayerWidget(QWidget * parent)
     : QWidget(parent)
@@ -16,14 +17,16 @@ MediayPlayerWidget::MediayPlayerWidget(QWidget * parent)
 
     // 连接 TreeWidget 的项点击事件
     connect(ui->treeWidget, &QTreeWidget::itemDoubleClicked, this, &MediayPlayerWidget::onItemDoubleClicked);
+    connect(ui->refreshBtn, &QPushButton::clicked, this, &MediayPlayerWidget::onRefreshBtnClicked);
+    connect(ui->webView, &LWebView::loadProgress, this, &MediayPlayerWidget::onLoadProgress);
+    connect(ui->webView, &LWebView::titleChanged, this, &MediayPlayerWidget::onTitleChanged);
+    connect(ui->webView, &LWebView::urlChanged, this, &MediayPlayerWidget::onUrlChanged);
 
-    on_pushButton_refresh_clicked();
-
-    connect(ui->webView, SIGNAL(loadProgress(int)), SLOT(onLoadProgress(int)));
-    connect(ui->webView, SIGNAL(titleChanged(QString)), SLOT(onTitleChanged(QString)));
-    connect(ui->webView, SIGNAL(urlChanged(QUrl)), SLOT(onUrlChanged(QUrl)));
+    connect(m_pHttpClient, &HttpClient::parserFinished, this, &MediayPlayerWidget::onParserFinished);
 
     onLoadProgress(ui->webView->LoadProgress());
+
+    onRefreshBtnClicked(); // 先刷新一次
 }
 
 MediayPlayerWidget::~MediayPlayerWidget()
@@ -36,11 +39,10 @@ void MediayPlayerWidget::updateTreeWidget()
     m_pHttpClient->updateTreeWidget(ui->treeWidget);
 }
 
-void MediayPlayerWidget::on_pushButton_refresh_clicked()
+void MediayPlayerWidget::onRefreshBtnClicked()
 {
     // 请求一次 然后刷新
     m_pHttpClient->getFileList();
-    updateTreeWidget();
 }
 
 void MediayPlayerWidget::onItemDoubleClicked(QTreeWidgetItem * item, int column)
@@ -68,4 +70,9 @@ void MediayPlayerWidget::onTitleChanged(const QString & title)
 
 void MediayPlayerWidget::onUrlChanged(const QUrl & url)
 {
+}
+
+void MediayPlayerWidget::onParserFinished()
+{
+    updateTreeWidget();
 }

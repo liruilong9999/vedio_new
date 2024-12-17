@@ -43,7 +43,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_refresh">
+          <widget class="QPushButton" name="refreshBtn">
            <property name="text">
             <string>刷新文件列表</string>
            </property>

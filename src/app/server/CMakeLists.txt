@@ -10,4 +10,4 @@ set(QT_LIBRARY_LIST "Core" "Gui" "Widgets" "Network")
 set(SELF_LIBRARY_LIST "qhttpserver")
 # 创建项目
 CreateTarget(${ProjectName} "ExeCMD")
-  
+   

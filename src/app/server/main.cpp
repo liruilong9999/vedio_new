@@ -1,5 +1,5 @@
 #include <QCoreApplication>
-#include "httpserver.h"
+#include "httpfileserver.h"
 
 /*
 请求方法：

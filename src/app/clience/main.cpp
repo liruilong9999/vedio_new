@@ -1,7 +1,6 @@
 #include <QApplication>
 #include <LWebView/LWebView.h>
 
-#include "HttpClient.h"
 #include "mediayplayerwidget.h"
 
 int main(int argc, char * argv[])

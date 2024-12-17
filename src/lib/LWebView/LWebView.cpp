@@ -35,7 +35,10 @@ public:
         QWebEngineScript script;
         script.setInjectionPoint(QWebEngineScript::DocumentCreation);
         script.setWorldId(QWebEngineScript::MainWorld);
-        script.setSourceCode(LoadText(":/file/qwebchannel.js"));
+
+		// script.setSourceCode(LoadText(":/file/qwebchannel.js"));  如果这里崩溃，就需要将qtcore动态库替换，
+		// 因为通过qt安装器下载的动态库是阉割版，将源码重新编译再将动态库放在执行文件目录下即可
+        script.setSourceCode(LoadText(":/file/qwebchannel.js")); 
         if ((_Ok = !script.isNull()))
         {
             QWebEngineProfile*aa = QWebEngineProfile::defaultProfile();
@@ -126,8 +129,8 @@ LWebBrowser * LWebView::Browser() const
 
 bool LWebView::Init()
 {
-    //static LWebViewInitializer Initializer;
-    //return Initializer.isOk();
+    static LWebViewInitializer Initializer;
+    return Initializer.isOk();
     return true;
 }
 

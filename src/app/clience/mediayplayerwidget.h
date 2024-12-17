@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <LWebView/LWebView.h>
 
-#include "HttpClient.h"
+#include "httpclient.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -22,16 +22,17 @@ public:
 
     void updateTreeWidget();
 
-	//void refreshWeb(QString url);
+    // void refreshWeb(QString url);
 
 public slots:
     // 获取文件列表
-    void on_pushButton_refresh_clicked();
+    void onRefreshBtnClicked();
     void onItemDoubleClicked(QTreeWidgetItem * item, int column);
+    void onLoadProgress(int progress);
+    void onTitleChanged(const QString & title);
+    void onUrlChanged(const QUrl & url);
+	void onParserFinished();
 
-	void onLoadProgress(int progress);
-	void onTitleChanged(const QString & title);
-	void onUrlChanged(const QUrl & url);
 private:
     Ui::MediayPlayerWidget * ui;
 

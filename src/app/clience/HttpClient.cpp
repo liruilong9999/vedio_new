@@ -1,4 +1,4 @@
-#include "HttpClient.h"
+#include "httpclient.h"
 #include <QSettings>
 #include <QDebug>
 #include <QJsonDocument>
@@ -13,19 +13,20 @@ HttpClient::HttpClient(QObject * parent)
     loadConfig();
 
     // 创建 QNetworkAccessManager
-    manager = new QNetworkAccessManager(this);
+    m_pManager = new QNetworkAccessManager(this);
 }
 
 HttpClient::~HttpClient()
 {
-    reply->deleteLater();
+    m_pReply->deleteLater();
+	m_pManager->deleteLater();
 }
 
 void HttpClient::onRequestFinished()
 {
     // 获取响应数据
-    QByteArray responseData = reply->readAll();
-    // qDebug() << "Response Data:" << responseData;
+    QByteArray responseData = m_pReply->readAll();
+    qDebug() << "Response Data:" << responseData;
 
     // 解析 JSON 数据
     QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
@@ -47,13 +48,16 @@ void HttpClient::onRequestFinished()
     {
         qDebug() << "Failed to parse JSON response.";
     }
+
+	//解析完成后发送信号
+	emit parserFinished();
 }
 
 void HttpClient::loadConfig()
 {
     QSettings settings("config/config.ini", QSettings::IniFormat);
-    ip   = settings.value("Server/ip", "127.0.0.1").toString();
-    port = settings.value("Server/port", 8080).toInt();
+    m_ip   = settings.value("Server/ip", "127.0.0.1").toString();
+    m_port = settings.value("Server/port", 8080).toInt();
 }
 
 void HttpClient::parseFileList(const QJsonArray & fileArray, QList<FileInfo> & fileList, const QString & parentDir)
@@ -147,26 +151,26 @@ void HttpClient::addSubdirectories(QTreeWidgetItem * parentItem, const FileInfo 
 void HttpClient::getFileList()
 {
     // 如果有旧的回复对象，先断开连接并删除
-    if (reply)
+    if (m_pReply)
     {
-        disconnect(reply, &QNetworkReply::finished, this, &HttpClient::onRequestFinished); // 断开槽函数
-        reply->deleteLater();                                                              // 删除之前的 reply 对象
+        disconnect(m_pReply, &QNetworkReply::finished, this, &HttpClient::onRequestFinished); // 断开槽函数
+        m_pReply->deleteLater();                                                              // 删除之前的 reply 对象
     }
 
     // 设置请求的 URL
-    QUrl            url(QString("http://%1:%2/filelist").arg(ip).arg(port));
+    QUrl            url(QString("http://%1:%2/filelist").arg(m_ip).arg(m_port));
     QNetworkRequest request(url);
 
     // 发送 GET 请求
-    reply = manager->get(request);
+    m_pReply = m_pManager->get(request);
 
     // 连接新的 reply 对象的 finished 信号与槽函数
-    connect(reply, &QNetworkReply::finished, this, &HttpClient::onRequestFinished);
+    connect(m_pReply, &QNetworkReply::finished, this, &HttpClient::onRequestFinished);
 }
 
 QUrl HttpClient::getVedioUrl(QString path)
 {
-    QUrl url(QString("http://%1:%2%3").arg(ip).arg(port).arg(path));
+    QUrl url(QString("http://%1:%2%3").arg(m_ip).arg(m_port).arg(path));
 	qDebug()<<url;
     return url;
 }

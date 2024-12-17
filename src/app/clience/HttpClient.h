@@ -31,7 +31,10 @@ public:
     void updateTreeWidget(QTreeWidget * treeWidget);
 
     void getFileList();
-	QUrl getVedioUrl(QString path);
+    QUrl getVedioUrl(QString path);
+
+signals:
+    void parserFinished();
 
 private slots:
     void onRequestFinished();
@@ -43,10 +46,10 @@ private:
     void addSubdirectories(QTreeWidgetItem * parentItem, const FileInfo & parentInfo);
 
 private:
-    QNetworkAccessManager * manager{nullptr};
-    QNetworkReply *         reply{nullptr};
-    QString                 ip;
-    int                     port;
+    QNetworkAccessManager * m_pManager{nullptr};
+    QNetworkReply *         m_pReply{nullptr};
+    QString                 m_ip;
+    int                     m_port;
     QList<FileInfo>         m_fileList;
 };
 
