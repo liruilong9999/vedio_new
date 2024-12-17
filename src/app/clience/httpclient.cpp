@@ -19,7 +19,7 @@ HttpClient::HttpClient(QObject * parent)
 HttpClient::~HttpClient()
 {
     m_pReply->deleteLater();
-	m_pManager->deleteLater();
+    m_pManager->deleteLater();
 }
 
 void HttpClient::onRequestFinished()
@@ -49,8 +49,8 @@ void HttpClient::onRequestFinished()
         qDebug() << "Failed to parse JSON response.";
     }
 
-	//解析完成后发送信号
-	emit parserFinished();
+    // 解析完成后发送信号
+    emit parserFinished();
 }
 
 void HttpClient::loadConfig()
@@ -171,6 +171,6 @@ void HttpClient::getFileList()
 QUrl HttpClient::getVedioUrl(QString path)
 {
     QUrl url(QString("http://%1:%2%3").arg(m_ip).arg(m_port).arg(path));
-	qDebug()<<url;
+    qDebug() << url;
     return url;
 }
