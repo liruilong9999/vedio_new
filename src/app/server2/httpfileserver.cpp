@@ -56,9 +56,8 @@ void HttpFileServer::incomingConnection(qintptr socketDescriptor)
     }
 
     connect(socket, &QTcpSocket::readyRead, [this, socket]() {
-        QByteArray requestData = socket->readAll();
-        QString    request     = QString::fromUtf8(requestData);
-
+        QByteArray  requestData  = socket->readAll();
+        QString     request      = QString::fromUtf8(requestData);
         QStringList requestLines = request.split("\r\n");
         if (requestLines.isEmpty())
         {
@@ -92,7 +91,7 @@ void HttpFileServer::incomingConnection(qintptr socketDescriptor)
 
             if (fileInfo.exists() && fileInfo.isFile())
             {
-                sendHttpResponse(socket, filePath);
+                sendHttpResponse(socket, filePath, requestData);
             }
             else
             {
@@ -106,7 +105,7 @@ void HttpFileServer::incomingConnection(qintptr socketDescriptor)
 }
 
 // 发送 HTTP 响应和文件内容
-void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & filePath)
+void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & filePath, QByteArray requestData)
 {
     QFile file(filePath); // 创建文件对象
     if (!file.open(QIODevice::ReadOnly))
@@ -121,24 +120,60 @@ void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & fileP
     qint64    fileSize = fileInfo.size();
 
     // 获取请求的 Range（即用户拖动进度条时会发送的范围）
-    QByteArray requestData = socket->readAll();
-    QString    request     = QString::fromUtf8(requestData);
+    qDebug() << requestData;
+
+    QString request = QString::fromUtf8(requestData);
+
+	QStringList requestLines = request.split("\r\n");
+    QString     rangeHeader;
+    for (const QString & line : requestLines)
+    {
+        if (line.startsWith("Range:"))
+        {
+            rangeHeader = line;
+            break;
+        }
+    }
 
     qint64 startByte = 0;
     qint64 endByte   = fileSize - 1;
 
     // 检查请求头是否包含 "Range" 字段
-    if (request.contains("Range: bytes="))
+    if (rangeHeader.contains("Range"))
     {
         // 解析 Range 请求
-        QRegExp rangeRegex("Range: bytes=(\\d+)-(\\d+)");
-        int     pos = rangeRegex.indexIn(request);
+        QRegExp rangeRegex("Range: bytes=(\\d*)-(\\d*)");
+        // QRegExp rangeRegex("Range: bytes=(\\d+)-(\\d+)");
+        int pos = rangeRegex.indexIn(request);
         if (pos != -1)
         {
             startByte = rangeRegex.cap(1).toLongLong();
             endByte   = rangeRegex.cap(2).toLongLong();
         }
     }
+    if (endByte == 0)
+    {
+        if (15 * 1024 * 1024+startByte < fileSize - 1) // 文件小于15M的话，直接缓存整个文件，否则就15M
+        {
+            endByte = 15 * 1024 * 1024+startByte;
+        }
+		else
+        {
+            endByte = fileSize - 1;
+		}
+	}
+	else
+	{
+        if (15 * 1024 * 1024 < fileSize - 1) // 文件小于15M的话，直接缓存整个文件，否则就15M
+        {
+            endByte = 15 * 1024 * 1024+startByte;
+        }
+        else
+        {
+            endByte = fileSize - 1;
+        }
+	}
+
 
     // 确保返回的字节范围合法
     if (startByte < 0)
@@ -167,6 +202,7 @@ void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & fileP
                              .arg(fileName)
                              .arg(QDateTime::currentDateTime().toString("ddd, dd MMM yyyy hh:mm:ss GMT"));
 
+	qDebug()<<httpHeader;
     // 发送响应头
     socket->write(httpHeader.toUtf8());
     // 发送文件数据
