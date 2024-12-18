@@ -108,7 +108,7 @@ void HttpFileServer::incomingConnection(qintptr socketDescriptor)
 // 发送 HTTP 响应和文件内容
 void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & filePath)
 {
-    QFile file(filePath);
+    QFile file(filePath); // 创建文件对象
     if (!file.open(QIODevice::ReadOnly))
     {
         socket->write("HTTP/1.1 500 Internal Server Error\r\n\r\nUnable to read file");
@@ -116,22 +116,60 @@ void HttpFileServer::sendHttpResponse(QTcpSocket * socket, const QString & fileP
         return;
     }
 
-    QFileInfo  fileInfo(filePath);
-    QString    fileName = fileInfo.fileName();
-    QByteArray fileData = file.readAll();
+    QFileInfo fileInfo(filePath);
+    QString   fileName = fileInfo.fileName();
+    qint64    fileSize = fileInfo.size();
 
+    // 获取请求的 Range（即用户拖动进度条时会发送的范围）
+    QByteArray requestData = socket->readAll();
+    QString    request     = QString::fromUtf8(requestData);
+
+    qint64 startByte = 0;
+    qint64 endByte   = fileSize - 1;
+
+    // 检查请求头是否包含 "Range" 字段
+    if (request.contains("Range: bytes="))
+    {
+        // 解析 Range 请求
+        QRegExp rangeRegex("Range: bytes=(\\d+)-(\\d+)");
+        int     pos = rangeRegex.indexIn(request);
+        if (pos != -1)
+        {
+            startByte = rangeRegex.cap(1).toLongLong();
+            endByte   = rangeRegex.cap(2).toLongLong();
+        }
+    }
+
+    // 确保返回的字节范围合法
+    if (startByte < 0)
+        startByte = 0;
+    if (endByte >= fileSize)
+        endByte = fileSize - 1;
+
+    // 定位到请求的字节位置
+    file.seek(startByte);
+
+    QByteArray fileData = file.read(endByte - startByte + 1);
+
+    // 构建 HTTP 头，支持 Range 请求
     QString httpHeader = QString(
-                             "HTTP/1.1 200 OK\r\n"
+                             "HTTP/1.1 206 Partial Content\r\n"
                              "Content-Type: video/mp4\r\n"
                              "Content-Length: %1\r\n"
+                             "Content-Range: bytes %2-%3/%4\r\n"
                              "Connection: close\r\n"
-                             "Content-Disposition: inline; filename=%2\r\n"
-                             "Date: %3\r\n\r\n")
+                             "Content-Disposition: inline; filename=%5\r\n"
+                             "Date: %6\r\n\r\n")
                              .arg(fileData.size())
+                             .arg(startByte)
+                             .arg(endByte)
+                             .arg(fileSize)
                              .arg(fileName)
                              .arg(QDateTime::currentDateTime().toString("ddd, dd MMM yyyy hh:mm:ss GMT"));
 
+    // 发送响应头
     socket->write(httpHeader.toUtf8());
+    // 发送文件数据
     socket->write(fileData);
     socket->flush();
     socket->close();
