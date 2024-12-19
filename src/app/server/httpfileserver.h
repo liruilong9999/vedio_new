@@ -20,7 +20,7 @@ public:
     void startServer();
 
     // 处理文件响应，发送HTTP响应和文件内容
-    void sendHttpResponse(QTcpSocket * socket, const QString & filePath);
+    void sendHttpResponse(QTcpSocket * socket, const QString & filePath, QByteArray requestData);
 
     // 从配置文件中读取配置
     void loadSettings();
